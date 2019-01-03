@@ -10,6 +10,8 @@ import android.support.v4.view.GestureDetectorCompat;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.view.ScaleGestureDetector.SimpleOnScaleGestureListener;
 import android.widget.OverScroller;
 import com.jkwar.code.Utils;
 
@@ -28,30 +30,52 @@ public class Sample01ScalableImageView extends android.support.v7.widget.AppComp
   //最初的大小
   private float originalOffsetX;
   private float originalOffsetY;
-  //小的缩放
+  //最小的缩放
   private float smallScale;
-  //大的缩放
+  //最大的缩放
   private float bigScale;
   //是否已经放大
   private boolean isBig;
   //当前放大倍数
-  //private float currentScale;
+  private float currentScale;
+
+  public float getCurrentScale() {
+    return currentScale;
+  }
+
+  public void setCurrentScale(float currentScale) {
+    this.currentScale = currentScale;
+    invalidate();
+  }
+
   //缩放进度
-  private float scaleFraction;
+  //private float scaleFraction;
+  //public float getScaleFraction() {
+  //  return scaleFraction;
+  //}
+  //
+  //public void setScaleFraction(float scaleFraction) {
+  //  this.scaleFraction = scaleFraction;
+  //  invalidate();
+  //}
   //手势监听
   private GestureDetectorCompat mGestureDetector;
-  //手势监听事件
-  private GestureListener mGestureListener = new GestureListener();
   //缩放动画
   private ObjectAnimator scaleAnimator;
   //滑动
   private OverScroller scroller;
+  //线程
   private flingRunner mFlingRunner = new flingRunner();
+  //手势缩放监听
+  private ScaleGestureDetector mScaleGestureDetector;
 
   public Sample01ScalableImageView(Context context, @Nullable AttributeSet attrs) {
     super(context, attrs);
     bitmap = Utils.getAvatar(getResources(), (int) IMAGE_WIDTH);
-    mGestureDetector = new GestureDetectorCompat(context, mGestureListener);
+    //手势监听事件
+    mGestureDetector = new GestureDetectorCompat(context, new GestureListener());
+    //双指缩放监听事件
+    mScaleGestureDetector = new ScaleGestureDetector(context, new ScaleGestureListener());
     scroller = new OverScroller(context);
   }
 
@@ -67,15 +91,23 @@ public class Sample01ScalableImageView extends android.support.v7.widget.AppComp
       smallScale = (float) getHeight() / bitmap.getHeight();
       bigScale = (float) getWidth() / bitmap.getWidth() * OVER_SCALE_FACTOR;
     }
+    currentScale = smallScale;
   }
 
   @Override public boolean onTouchEvent(MotionEvent event) {
-    return mGestureDetector.onTouchEvent(event);
+    //判断如果不是双指缩放时，就采用 GestrueDetector 监听
+    boolean result = mScaleGestureDetector.onTouchEvent(event);
+    if (!mScaleGestureDetector.isInProgress()) {
+      result = mGestureDetector.onTouchEvent(event);
+    }
+    return result;
   }
 
   @Override protected void onDraw(Canvas canvas) {
     super.onDraw(canvas);
-    float currentScale = smallScale + (bigScale - smallScale) * scaleFraction;
+    //float currentScale = smallScale + (bigScale - smallScale) * scaleFraction;
+    //缩放进度【（当前缩放大小-最小缩放大小）/ (最大缩放大小-最小缩放大小)】
+    float scaleFraction = (currentScale - smallScale) / (bigScale - smallScale);
     //偏移位置
     canvas.translate(offsetX * scaleFraction, offsetY * scaleFraction);
     //缩放
@@ -167,6 +199,24 @@ public class Sample01ScalableImageView extends android.support.v7.widget.AppComp
     }
   }
 
+  //双指缩放事件
+  private class ScaleGestureListener extends SimpleOnScaleGestureListener {
+    float initialScale;
+
+    //缩放开始
+    @Override public boolean onScaleBegin(ScaleGestureDetector detector) {
+      initialScale = currentScale;
+      return true;
+    }
+
+    //正在缩放
+    @Override public boolean onScale(ScaleGestureDetector detector) {
+      currentScale = initialScale * detector.getScaleFactor();
+      invalidate();
+      return false;
+    }
+  }
+
   //死循环刷新界面
   class flingRunner implements Runnable {
     @Override
@@ -180,15 +230,9 @@ public class Sample01ScalableImageView extends android.support.v7.widget.AppComp
     }
   }
 
-  public float getScaleFraction() {
-    return scaleFraction;
-  }
-
-  public void setScaleFraction(float scaleFraction) {
-    this.scaleFraction = scaleFraction;
-    invalidate();
-  }
-
+  /**
+   * 越界判断
+   */
   private void fixOffsets() {
     offsetX = Math.max(offsetX, -(bitmap.getWidth() * bigScale - getWidth()) / 2);
     offsetX = Math.min(offsetX, (bitmap.getWidth() * bigScale - getWidth()) / 2);
@@ -198,7 +242,7 @@ public class Sample01ScalableImageView extends android.support.v7.widget.AppComp
 
   private ObjectAnimator getScaleAnimator() {
     if (scaleAnimator == null) {
-      scaleAnimator = ObjectAnimator.ofFloat(this, "scaleFraction", 0, 1);
+      scaleAnimator = ObjectAnimator.ofFloat(this, "currentScale", smallScale, bigScale);
     }
     return scaleAnimator;
   }
