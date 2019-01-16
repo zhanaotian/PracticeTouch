@@ -20,6 +20,12 @@ public class MainActivity extends AppCompatActivity {
   {
     pageModels.add(
         new PageModel(R.layout.sample_scalable_image_view, R.string.title_scalable_image_view));
+    pageModels.add(
+        new PageModel(R.layout.sample_relay_type_view, R.string.title_relay_type_view));
+    pageModels.add(
+        new PageModel(R.layout.sample_collaborative_view, R.string.title_collaborative_view));
+    pageModels.add(
+        new PageModel(R.layout.sample_independent_type_view, R.string.title_independent_type_view));
   }
 
   @Override

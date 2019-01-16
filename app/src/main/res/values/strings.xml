@@ -1,4 +1,7 @@
 <resources>
   <string name="app_name">PracticeTouch</string>
   <string name="title_scalable_image_view">ScalableImageView</string>
+  <string name="title_relay_type_view">RelayTypeView</string>
+  <string name="title_collaborative_view">CollaborativeTypeView</string>
+  <string name="title_independent_type_view">IndependentTypeView</string>
 </resources>
